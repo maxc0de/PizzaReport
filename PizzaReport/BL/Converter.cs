@@ -2,53 +2,57 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Office.Interop.Excel;
-using Application = Microsoft.Office.Interop.Excel.Application;
+using Excel = Microsoft.Office.Interop.Excel.Application;
 
 namespace MilanoExtraReport.BL
 {
     public static class Converter
     {
-        private static Application _excel;
-
-        public static event Action<int> Read;
-        public static event Action<int> Write;
-        public static event Action<string> Converted;
-        public static event Action<Exception> Error;
+        public static event Action<int> RowRead;
+        public static event Action<int> RowWritten;
+        public static event Action<string> Completed;
+        public static event Action<Exception> ErrorOccurred;
 
         public static void Convert(string fileName)
         {
-            string newFileName = fileName.Replace(".xlsx", "_new.xlsx");
-
+            Excel excel = null;
             try
             {
-                IEnumerable<Item> items = GetListItem(fileName);
+                excel = new Excel();
+
+                Workbook objWorkBook = excel.Workbooks.Open(fileName, 0, false, 5, "", "", false, XlPlatform.xlWindows, "", true, false, 0, true, false, false);
+                Worksheet objWorkSheet = (Worksheet)objWorkBook.Sheets[1];
+
+                IEnumerable<Item> items = SumSameTypePizzas(GetPizzaItems(objWorkSheet));
+
+                excel.Quit();
 
                 if (items != null)
                 {
-                    CreateExcel(newFileName, AddSameTypePizza(items));
+                    excel = new Excel();
+
+                    Workbook objWorkBook2 = excel.Workbooks.Add(Type.Missing);
+                    Worksheet objWorkSheet2 = (Worksheet)objWorkBook2.Sheets[1];
+
+                    FillExcel(items, objWorkSheet2);
+
+                    string newFileName = fileName.Replace(".xlsx", "_new.xlsx");
+                    objWorkBook2.SaveAs(newFileName);
+                    Completed(newFileName);
                 }
             }
             catch(Exception ex)
             {
-                Error(ex);
-                return;
+                ErrorOccurred(ex);
             }
             finally
             {
-                if(_excel != null)
-                {
-                    _excel.Quit();
-                }
+                excel?.Quit();
             }
         }
 
-        private static IEnumerable<Item> GetListItem(string fileName)
+        private static IEnumerable<Item> GetPizzaItems(Worksheet objWorkSheet)
         {
-            _excel = new Application();
-
-            Workbook objWorkBook = _excel.Workbooks.Open(fileName, 0, false, 5, "", "", false, XlPlatform.xlWindows, "", true, false, 0, true, false, false);
-            Worksheet objWorkSheet = (Worksheet)objWorkBook.Sheets[1];
-
             List<Item> pizzaItems = new List<Item>();
             string enterprise = string.Empty;
             string group = null;
@@ -78,10 +82,8 @@ namespace MilanoExtraReport.BL
                     pizzaItems.Add(new Item(parcedName, group, amountPartsColumn, sumColumn, enterprise));
                 }
 
-                Read(amountRows);
+                RowRead(amountRows / i * 100);
             }
-
-            _excel.Quit();
 
             return pizzaItems;
         }
@@ -125,7 +127,7 @@ namespace MilanoExtraReport.BL
             return true;
         }
 
-        private static IEnumerable<Item> AddSameTypePizza(IEnumerable<Item> pizzas)
+        private static IEnumerable<Item> SumSameTypePizzas(IEnumerable<Item> pizzas)
         {
             List<Item> items = new List<Item>();
 
@@ -145,13 +147,8 @@ namespace MilanoExtraReport.BL
             return items;
         }
 
-        private static void CreateExcel(string fileName, IEnumerable<Item> pizzas)
+        private static void FillExcel(IEnumerable<Item> pizzas, Worksheet objWorkSheet)
         {
-            _excel = new Application();
-
-            Workbook objWorkBook = _excel.Workbooks.Add(Type.Missing);
-            Worksheet objWorkSheet = (Worksheet)objWorkBook.Sheets[1];
-
             objWorkSheet.Cells[1, 1] = "Подразделение";
             objWorkSheet.Cells[1, 2] = "Группа";
             objWorkSheet.Cells[1, 3] = "Наименование";
@@ -169,11 +166,8 @@ namespace MilanoExtraReport.BL
                 objWorkSheet.Cells[i, 5] = pizzaItem.AmountUnit;
                 objWorkSheet.Cells[i, 6] = pizzaItem.Sum;
                 i++;
-                Write(pizzas.Count());
+                RowWritten(pizzas.Count());
             }
-
-            objWorkBook.SaveAs(fileName);
-            Converted(fileName);
         }
     }
 }

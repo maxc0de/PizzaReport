@@ -12,10 +12,18 @@ namespace MilanoExtraReport.UI
         {
             InitializeComponent();
 
-            Converter.Read += Converter_Read;
-            Converter.Write += Converter_Write;
-            Converter.Converted += Converter_Converted;
-            Converter.Error += Converter_Error;
+            if (Type.GetTypeFromProgID("Excel.Application") == null)
+            {
+                Header.Text = "Ошибка";
+                Body.Text = "MS Excel не установлен на данном ПК.";
+                return;
+            }
+
+            Converter.RowRead += Converter_Read;
+            Converter.RowWritten += Converter_Write;
+            Converter.Completed += Converter_Converted;
+            Converter.ErrorOccurred += Converter_Error;
+            this.Loaded += Window_Loaded;
         }
 
 
@@ -26,6 +34,7 @@ namespace MilanoExtraReport.UI
             if (!string.IsNullOrEmpty(fileName))
             {
                 new Task(() => Converter.Convert(fileName)).Start();
+                Progress.Visibility = Visibility.Visible;
             }
             else
             {
@@ -49,12 +58,11 @@ namespace MilanoExtraReport.UI
             return null;
         }
 
-        private void Converter_Read(int number)
+        private void Converter_Read(int percentСomplete)
         {
             Dispatcher.Invoke(() => {
                 Header.Text = "Чтение данных";
-                Progress.Maximum = number;
-                Progress.Value++;
+                Progress.Value = percentСomplete;
             });
         }
 

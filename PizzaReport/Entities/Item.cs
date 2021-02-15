@@ -37,6 +37,16 @@ namespace MilanoExtraReport.BL
 
         public Item(string name, string group, double? amountParts, double? sum, string enterprise)
         {
+            if (string.IsNullOrEmpty(name))
+            {
+                throw new ArgumentException(nameof(name));
+            }
+
+            if (string.IsNullOrEmpty(group))
+            {
+                throw new ArgumentException(nameof(group));
+            }
+
             if (group.Contains("Пицца"))
             {
                 Name = SimplifyPizzaName(name);
@@ -50,12 +60,12 @@ namespace MilanoExtraReport.BL
             Sum = (double)sum;
             Enterprise = enterprise;
 
-            Part = CheckPart(name);
+            Part = GetItemPartFromName(name);
 
             _amountParts = (double)amountParts;
         }
 
-        private ItemPart CheckPart(string name)
+        private ItemPart GetItemPartFromName(string name)
         {
             if (name.Contains("1/2"))
             {
@@ -78,7 +88,7 @@ namespace MilanoExtraReport.BL
             Regex regex = new Regex(@".+?(?=\s\d)");
             string pizzaName = regex.Match(name).ToString();
 
-            if (pizzaName != "")
+            if (!string.IsNullOrEmpty(pizzaName))
             {
                 return pizzaName;
             }

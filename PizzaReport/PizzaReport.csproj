@@ -89,15 +89,14 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="BL\Converter.cs" />
-    <Compile Include="BL\OlapReport.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BL\ItemPart.cs" />
-    <Compile Include="BL\Item.cs" />
+    <Compile Include="Entities\ItemPart.cs" />
+    <Compile Include="Entities\Item.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
